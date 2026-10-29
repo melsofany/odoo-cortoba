@@ -32,19 +32,15 @@ if command -v wait-for-psql.py >/dev/null 2>&1; then
     --db_user="${USER}" --db_password="${PASSWORD}" --timeout=60
 fi
 
-# First-run initialisation. Set ODOO_INIT_MODULES (e.g. "base,l10n_eg") on the
-# service to create the database and install those modules on the first boot;
-# remove the variable afterwards so later deploys only start the server.
-# -i is a no-op for modules that are already installed, but skipping it once the
-# database exists keeps restarts fast and avoids re-running the upgrade.
+# Optional module install/upgrade. Set ODOO_INIT_MODULES (e.g.
+# "base,account,l10n_eg,purchase,sale_management") to create the database on
+# first boot and install those modules. Later, set it to just the modules you
+# want to add (e.g. "cortoba_bootstrap") to install them into the existing
+# database. -i is idempotent for already-installed modules. Remove the variable
+# afterwards so later deploys only start the server.
 if [ -n "${ODOO_INIT_MODULES}" ] && [ -n "${DB_NAME}" ]; then
-  if ! odoo shell -d "${DB_NAME}" --no-http <<'PY' >/dev/null 2>&1
-print("ready")
-PY
-  then
-    echo "Initialising database ${DB_NAME} with modules: ${ODOO_INIT_MODULES}"
-    odoo "${DB_ARGS[@]}" -d "${DB_NAME}" -i "${ODOO_INIT_MODULES}" --without-demo=all --stop-after-init
-  fi
+  echo "Ensuring modules in ${DB_NAME}: ${ODOO_INIT_MODULES}"
+  odoo "${DB_ARGS[@]}" -d "${DB_NAME}" -i "${ODOO_INIT_MODULES}" --without-demo=all --stop-after-init
 fi
 
 # CMD is ["odoo"], and Odoo's CLI takes no bare positional argument — passing it
