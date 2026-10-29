@@ -95,10 +95,9 @@ class ResCompany(models.Model):
         # try_loading can reset the registry/env, so drop cached lookups before
         # resolving the external IDs the chart just created.
         self.env.invalidate_all()
-        tax_model = self.env["account.tax"]
         missing = []
         for tax_xmlid in REQUIRED_TAXES:
-            tax = self.env.ref("l10n_eg.%s" % tax_xmlid, raise_if_not_found=False)
+            tax = self._cortoba_resolve_tax(tax_xmlid)
             if not tax:
                 missing.append(tax_xmlid)
                 continue
@@ -106,16 +105,20 @@ class ResCompany(models.Model):
                 tax.active = True
         if missing:
             _logger.warning("cortoba: taxes not found after chart load: %s", missing)
-            candidates = tax_model.with_context(active_test=False).search(
-                [("amount", "in", (14.0, -3.0))]
-            )
-            for tax in candidates:
-                _logger.info(
-                    "cortoba: candidate tax name=%s amount=%s type=%s ext=%s",
-                    tax.name,
-                    tax.amount,
-                    tax.type_tax_use,
-                    tax.get_external_id().get(tax.id),
-                )
         else:
-            _logger.info("cortoba: company %s VAT/withholding taxes verified", self.id)
+            _logger.info("cortoba: company %s VAT 14%% and withholding 3%% taxes verified", self.id)
+
+    def _cortoba_resolve_tax(self, tax_xmlid):
+        """Resolve a chart-created tax.
+
+        The Egyptian chart is loaded as company data, so its records get the
+        module `account` and a company-scoped name (`account.<company>_<id>`)
+        rather than `l10n_eg.<id>`. Try both, newest form first.
+        """
+        for full_xmlid in ("account.%s_%s" % (self.id, tax_xmlid), "l10n_eg.%s" % tax_xmlid):
+            tax = self.env.ref(full_xmlid, raise_if_not_found=False)
+            if tax:
+                return tax
+        return self.env["account.tax"].with_context(active_test=False).search(
+            [("company_id", "=", self.id), ("name", "=", tax_xmlid)], limit=1
+        )

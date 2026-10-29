@@ -54,5 +54,10 @@ class ResUsers(models.Model):
             user.sudo().write(values)
         else:
             user = self.sudo().create(values)
-        _logger.info("cortoba: bridge user %s is ready (id=%s)", login, user.id)
+        _logger.info(
+            "cortoba: bridge user %s is ready (id=%s, groups=%s)",
+            login,
+            user.id,
+            [ref for ref in group_refs if self.env.ref(ref, raise_if_not_found=False)],
+        )
         return True
