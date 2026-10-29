@@ -5,7 +5,8 @@ set -e
 # reads PORT as the *Postgres* port, so the stock image makes Odoo dial Postgres
 # on 10000 and the deploy fails to connect. This wrapper never reads PORT for the
 # database: the DB port is ODOO_DB_PORT (Render Postgres listens on 5432), and
-# Odoo's HTTP server binds the fixed port 8069 (see odoo.conf).
+# Odoo's HTTP server binds the fixed port 10000 (see odoo.conf), which is the
+# internal port Render gives every private service.
 : "${ODOO_DB_PORT:=5432}"
 : "${HOST:=db}"
 : "${USER:=odoo}"
