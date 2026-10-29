@@ -92,11 +92,30 @@ class ResCompany(models.Model):
         )
 
     def _cortoba_enable_taxes(self):
+        # try_loading can reset the registry/env, so drop cached lookups before
+        # resolving the external IDs the chart just created.
+        self.env.invalidate_all()
+        tax_model = self.env["account.tax"]
+        missing = []
         for tax_xmlid in REQUIRED_TAXES:
             tax = self.env.ref("l10n_eg.%s" % tax_xmlid, raise_if_not_found=False)
             if not tax:
-                _logger.warning("cortoba: tax %s not found", tax_xmlid)
+                missing.append(tax_xmlid)
                 continue
             if not tax.active:
                 tax.active = True
-        _logger.info("cortoba: company %s tax set verified", self.id)
+        if missing:
+            _logger.warning("cortoba: taxes not found after chart load: %s", missing)
+            candidates = tax_model.with_context(active_test=False).search(
+                [("amount", "in", (14.0, -3.0))]
+            )
+            for tax in candidates:
+                _logger.info(
+                    "cortoba: candidate tax name=%s amount=%s type=%s ext=%s",
+                    tax.name,
+                    tax.amount,
+                    tax.type_tax_use,
+                    tax.get_external_id().get(tax.id),
+                )
+        else:
+            _logger.info("cortoba: company %s VAT/withholding taxes verified", self.id)
