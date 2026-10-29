@@ -47,4 +47,11 @@ PY
   fi
 fi
 
+# CMD is ["odoo"], and Odoo's CLI takes no bare positional argument — passing it
+# through would be parsed as an invalid argument and abort with exit code 2.
+# Drop a leading "odoo"/"--" the way the stock entrypoint does.
+if [ "${1:-}" = "odoo" ] || [ "${1:-}" = "--" ]; then
+  shift
+fi
+
 exec odoo "${DB_ARGS[@]}" "$@"
