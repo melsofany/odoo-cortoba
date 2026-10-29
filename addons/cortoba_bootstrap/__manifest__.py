@@ -18,6 +18,7 @@ effects.
     "category": "Accounting/Localizations",
     "depends": ["account", "l10n_eg", "purchase", "sale_management"],
     "post_init_hook": "post_init_hook",
+    "data": ["data/bootstrap.xml"],
     "installable": True,
     "application": False,
     "auto_install": False,

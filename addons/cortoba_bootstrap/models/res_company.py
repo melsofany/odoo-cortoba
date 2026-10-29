@@ -61,15 +61,35 @@ class ResCompany(models.Model):
         _logger.info("cortoba: company %s country/fiscal country set to Egypt", self.id)
 
     def _cortoba_load_chart(self):
-        if self.chart_template:
-            _logger.info("cortoba: company %s already uses chart %s", self.id, self.chart_template)
-            return
         chart = self.env["account.chart.template"].with_company(self)
         if CHART_TEMPLATE_CODE not in chart._get_chart_template_mapping():
             _logger.warning("cortoba: chart template %s unavailable", CHART_TEMPLATE_CODE)
             return
-        chart.try_loading(CHART_TEMPLATE_CODE, company=self, install_demo=False)
-        _logger.info("cortoba: company %s loaded chart %s", self.id, CHART_TEMPLATE_CODE)
+        if self.chart_template == CHART_TEMPLATE_CODE:
+            _logger.info("cortoba: company %s already uses chart %s", self.id, CHART_TEMPLATE_CODE)
+            return
+        # Odoo auto-loads a generic chart when `account` is installed before the
+        # company country is set, so the Egyptian taxes never get created. The
+        # chart can be replaced in place, but only while no entries exist.
+        if self.root_id._existing_accounting():
+            _logger.warning(
+                "cortoba: company %s has accounting data; not replacing chart %s",
+                self.id,
+                self.chart_template,
+            )
+            return
+        previous = self.chart_template
+        try:
+            chart.try_loading(CHART_TEMPLATE_CODE, company=self, install_demo=False)
+        except Exception:
+            _logger.exception("cortoba: failed to load chart %s", CHART_TEMPLATE_CODE)
+            return
+        _logger.info(
+            "cortoba: company %s loaded chart %s (was %s)",
+            self.id,
+            CHART_TEMPLATE_CODE,
+            previous,
+        )
 
     def _cortoba_enable_taxes(self):
         for tax_xmlid in REQUIRED_TAXES:

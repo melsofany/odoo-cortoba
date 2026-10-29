@@ -35,12 +35,16 @@ fi
 # Optional module install/upgrade. Set ODOO_INIT_MODULES (e.g.
 # "base,account,l10n_eg,purchase,sale_management") to create the database on
 # first boot and install those modules. Later, set it to just the modules you
-# want to add (e.g. "cortoba_bootstrap") to install them into the existing
-# database. -i is idempotent for already-installed modules. Remove the variable
-# afterwards so later deploys only start the server.
+# want to add or refresh (e.g. "cortoba_bootstrap") to install/upgrade them.
+# Both -i and -u are idempotent. Remove the variable afterwards so later
+# deploys only start the server.
 if [ -n "${ODOO_INIT_MODULES}" ] && [ -n "${DB_NAME}" ]; then
   echo "Ensuring modules in ${DB_NAME}: ${ODOO_INIT_MODULES}"
   odoo "${DB_ARGS[@]}" -d "${DB_NAME}" -i "${ODOO_INIT_MODULES}" --without-demo=all --stop-after-init
+fi
+if [ -n "${ODOO_UPGRADE_MODULES}" ] && [ -n "${DB_NAME}" ]; then
+  echo "Upgrading modules in ${DB_NAME}: ${ODOO_UPGRADE_MODULES}"
+  odoo "${DB_ARGS[@]}" -d "${DB_NAME}" -u "${ODOO_UPGRADE_MODULES}" --without-demo=all --stop-after-init
 fi
 
 # CMD is ["odoo"], and Odoo's CLI takes no bare positional argument — passing it

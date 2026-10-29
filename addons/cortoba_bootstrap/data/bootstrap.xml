@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Run on install AND on every `-u` upgrade. Both methods are idempotent,
+         so re-running only fills in what is still missing (e.g. the Egyptian
+         chart when a generic one was auto-loaded first). -->
+    <function model="res.company" name="cortoba_bootstrap"/>
+    <function model="res.users" name="cortoba_ensure_bridge_user"/>
+</odoo>
